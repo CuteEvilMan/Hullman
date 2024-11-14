@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-
+ unsigned int charnumber=0;
 typedef struct node {
     char data;
     unsigned int fred;
@@ -12,7 +12,25 @@ typedef struct list {
     node *data;
     struct list *next;
 } list;
-
+    typedef struct {
+        char data;
+        int huffman_code[100];
+    } Huffmancode;
+list* create_list(node*data);
+node *newnode(char data,unsigned int fred);
+list* insert_node( list *list0, node *data);
+void swap_list(list *list0 ,list *temp);
+list* insert_node( list *list0, node *data);
+int compire_fred(list *temp,list *list0) ;
+void sort_list(list *list1);
+void extract_node(list *list2);
+void hullman(list *list0) ;
+list* list_find(list *list0,char q);
+void see_input (list *list1,char into);
+void huffman_free_(node* temp);
+void huffman_free(list *list0) ;
+int isLeaf(const node* root);
+void printCodes(const node* root, int arr[], int top,FILE*);
 //创建一个链表节点
 list* create_list(node*data) {
     list* new_list = (list*)malloc(sizeof(list));
@@ -132,20 +150,28 @@ void hullman(list *list0) {
         extract_node(list0);
     }
 }
-
-//处理输入字符
-void see_input (list *list0,char into) {
-
-    while ( list0->next && list0->data->data !=into ) {
-        list0=list0->next;
+list* list_find(list *list0,char q) {
+    while(list0!=NULL && list0->data->data != q) {
+        list0 = list0->next;
     }
+    return list0;
+}
+//处理输入字符
+void see_input (list *list1,char into) {
+list* list0 = list1;
+    list0=list_find(list0,into);
+    if (list0 == NULL) {
+        list* list2 = list1;
+        while( list2->next != NULL ) {
+            list2 = list2->next;
+        }
+        list2->next = create_list(newnode(into,1));
+        charnumber++;
+    } else
     if (list0->data->data ==into) {
         list0->data->fred++;
     }
-if (!list0->next) {
-   list0->next = create_list(newnode(into,1));
-    //putchar(into);
-}
+
 }
 
 void huffman_free_(node* temp) {
@@ -166,7 +192,6 @@ void huffman_free(list *list0) {
         node* temp = list0->data->right;
         node* temp1 = list0->data->left;
         free(list0->data);
-        free(list0);
         huffman_free_(temp);
         huffman_free_(temp1);
     }
@@ -186,41 +211,51 @@ int isLeaf(const node* root) {
     return !root->left && !root->right; // 如果没有左右子节点，则是叶子节点
 }
 
-void printCodes(const node* root, int arr[], int top) {
+void printCodes(const node* root, int arr[], int top,FILE *fp1) {
+    if(top>=100)
+        exit(0);
     if (root->left) { // 如果存在左子节点，标记为0并递归
         arr[top] = 0;
-        printCodes(root->left, arr, top + 1);
+        printCodes(root->left, arr, top + 1,fp1);
     }
     if (root->right) { // 如果存在右子节点，标记为1并递归
         arr[top] = 1;
-        printCodes(root->right, arr, top + 1);
+        printCodes(root->right, arr, top + 1,fp1);
     }
     if (isLeaf(root)) { // 如果是叶子节点，打印字符及其编码
-        printf("%c: ", root->data);
+        fprintf(fp1,"%c: ", root->data);
         for (int i = 0; i < top; ++i)
-            printf("%d", arr[i]);
-        printf("\n");
+            fprintf(fp1,"%d", arr[i]);
+        putc('\n',fp1);
+
     }
 }
 
 
 
 int main(void) {
-    char ch=getchar();
+    char input[100];
+    printf("Enter the string:\n");
+    scanf("%s",input);
+     FILE*fp0= fopen(input,"r+b");
+    if (fp0 == NULL) {exit(0);}
+    scanf("%s",input);
+    FILE*fp1 = fopen(input,"w+b");
+    char ch=getc(fp0);
     if(ch==EOF)
         return 0;
 
     list* er = create_list(newnode(ch,1));
-
-    while((ch = getchar())!='q') {
+    charnumber++;
+    while((ch = getc(fp0))!=EOF) {
         see_input(er,ch);
     }
       // huffman_display(er->data);
         hullman(er);
     int arr[100], top = 0; // 存储霍夫曼编码的数组
-
-    printCodes(er->data, arr, top); // 打印霍夫曼编码
-
-    hullman(er);
+    printCodes(er->data, arr, top,fp1); // 打印霍夫曼编码
+    fclose(fp0);
+    fclose(fp1);
     huffman_free(er);
+    free(er);
 }
