@@ -1,226 +1,231 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+// 定义霍夫曼树的节点结构体
 typedef struct node {
-    char data;
-    unsigned int fred;
-    struct node *right;
-    struct node *left;
-} node;
+    char character;       // 节点存储的字符
+    unsigned int frequency;  // 字符出现的频率
+    struct node *rightChild; // 右子节点指针
+    struct node *leftChild;  // 左子节点指针
+} Node;
 
+// 定义链表节点结构体，用于存储节点和指向下一个链表节点的指针
 typedef struct list {
-    node *data;
-    struct list *next;
-} list;
+    Node *nodeData;        // 链表节点存储的数据
+    struct list *nextNode;  // 指向下一个链表节点的指针
+} ListNode;
 
-//创建一个链表节点
-list* create_list(node*data) {
-    list* new_list = (list*)malloc(sizeof(list));
-    new_list->data = data;
-    new_list->next = NULL;
-    return new_list;
+// 定义霍夫曼编码结构体
+typedef struct {
+    char character;                 // 编码的字符
+    int huffmanCode[101];           // 霍夫曼编码数组
+} HuffmanCode;
+// 函数声明
+ListNode* createListNode(Node* nodeData);
+Node *createNode(char character, unsigned int frequency);
+void swapNodes(ListNode *nodeA, ListNode *nodeB);
+int compareFrequencies(ListNode *nodeA, ListNode *nodeB);
+void sortList(ListNode *list);
+void combineNodes(ListNode *list);
+void buildHuffmanTree(ListNode **list);
+ListNode* findNode(ListNode *list, char character);
+void processInput(ListNode *list, char character);
+void freeHuffmanTree(Node* node);
+void freeHuffmanList(ListNode *list);
+int isLeafNode(const Node* node);
+void printCodes(const Node* root, int arr[], int top, FILE* file);
+
+// 创建一个链表节点
+ListNode* createListNode(Node* nodeData) {
+    ListNode* newList = (ListNode*)malloc(sizeof(ListNode));
+    newList->nodeData = nodeData;
+    newList->nextNode = NULL;
+    return newList;
 }
 
-//创建一个新的数据二叉节点
-node *newnode(char data,unsigned int fred) {
-    node *temp = (node *)malloc(sizeof(node));
-    temp->data = data;
-    temp->left = NULL;
-    temp->right = NULL;
-    temp->fred = fred;
-    return temp;
+// 创建一个新的数据二叉节点
+Node *createNode(char character, unsigned int frequency) {
+    Node *newNode = (Node *)malloc(sizeof(Node));
+    newNode->character = character;
+    newNode->leftChild = NULL;
+    newNode->rightChild = NULL;
+    newNode->frequency = frequency;
+    return newNode;
 }
 
-//交换两个链表节点的数据
-void swap_list(list *list0 ,list *temp) {
-    node *temp_ = list0->data;
-    list0->data = temp->data;
-    temp->data = temp_;
+// 交换两个链表节点的数据
+void swapNodes(ListNode *nodeA, ListNode *nodeB) {
+    Node *tempNode = nodeA->nodeData;
+    nodeA->nodeData = nodeB->nodeData;
+    nodeB->nodeData = tempNode;
 }
 
-//创建一个新的链表节点并存储二叉节点的指针
-list* insert_node( list *list0, node *data) {
-    while(list0->next !=NULL) {
-        list0 = list0->next;
-    }
-    list0->next = create_list(data);
-    list0->next->next = NULL;
-    return list0;
+// 比较两个节点的频率
+int compareFrequencies(ListNode *nodeA, ListNode *nodeB) {
+    return nodeA->nodeData->frequency > nodeB->nodeData->frequency ||
+           (nodeA->nodeData->frequency == nodeB->nodeData->frequency &&
+            nodeA->nodeData->character > nodeB->nodeData->character);
 }
 
-int compire_fred(list *temp,list *list0) {
-    return temp->data->fred > list0->data->fred  ||
-                    ( temp->data->fred == list0->data->fred &&
-                        temp->data->data > list0->data->data) ;
-}
-
-//将链表排序
-void sort_list(list *list1) {
-    //putchar('$');
-    list *list0 = list1;
-    if (list0 == NULL) {
+// 将链表排序，使用选择排序算法
+void sortList(ListNode *list) {
+    if (list == NULL) {
         return;
     }
-    {
-        while (list0  != NULL) {
-            list* temp = list0->next;
-            while (temp!= NULL   ) {
-                if( compire_fred(temp,list0) ) {
-                    swap_list(temp,list0);
-                    }
-                temp = temp->next;
+    ListNode *currentNode = list;
+    while (currentNode != NULL) {
+        ListNode *nextNode = currentNode->nextNode;
+        while (nextNode != NULL) {
+            if (compareFrequencies(nextNode, currentNode)) {
+                swapNodes(currentNode, nextNode);
             }
-            list0 = list0->next;
+            nextNode = nextNode->nextNode;
+        }
+        currentNode = currentNode->nextNode;
+    }
+}
+
+// 从链表中提取两个节点，创建一个新的内部节点，并重新排序链表
+void combineNodes(ListNode *list) {
+    if (list == NULL || list->nextNode == NULL) {
+        return;
+    }
+    ListNode *firstNode = list;
+    while (firstNode->nextNode && firstNode->nextNode->nextNode)
+        firstNode = firstNode->nextNode;
+    if (firstNode->nextNode) {
+        Node *newNode = createNode('\0',
+            firstNode->nodeData->frequency + firstNode->nextNode->nodeData->frequency);
+        newNode->leftChild = firstNode->nodeData;
+        newNode->rightChild = firstNode->nextNode->nodeData;
+        firstNode->nextNode->nodeData = NULL;
+        free(firstNode->nextNode);
+        firstNode->nextNode = NULL;
+        firstNode->nodeData = newNode;
+        sortList(list);
+    }
+}
+
+// 构建霍夫曼树
+void buildHuffmanTree(ListNode **list) {
+    sortList(*list);
+    if (*list == NULL) {return;}
+    while ((*list)->nextNode != NULL) {
+        combineNodes(*list);
+    }
+}
+
+// 在链表中查找特定字符的节点
+ListNode* findNode(ListNode *list, char character) {
+    while (list != NULL && list->nodeData->character != character) {
+        list = list->nextNode;
+    }
+    return list;
+}
+
+// 处理输入字符，更新链表中相应节点的频率或添加新节点
+void processInput(ListNode *list, char character) {
+    extern int CHAR;
+    ListNode *foundNode = findNode(list, character);
+    if (foundNode == NULL) {
+        ListNode *endNode = list;
+        while (endNode->nextNode != NULL) {
+            endNode = endNode->nextNode;
+        }
+        endNode->nextNode = createListNode(createNode(character, 1));
+        CHAR++;
+    } else if (foundNode->nodeData->character == character) {
+        foundNode->nodeData->frequency++;
+    }
+}
+
+// 递归释放霍夫曼树的内存
+void freeHuffmanTree(Node* node) {
+    if (node == NULL) {return;}
+    freeHuffmanTree(node->leftChild);
+    freeHuffmanTree(node->rightChild);
+    free(node);
+}
+
+// 释放链表的内存
+void freeHuffmanList(ListNode *list) {
+    if (list == NULL) {return;}
+    freeHuffmanList(list->nextNode);
+    freeHuffmanTree(list->nodeData);
+    free(list);
+}
+
+// 判断节点是否为叶子节点
+int isLeafNode(const Node* node) {
+    return node->leftChild == NULL && node->rightChild == NULL;
+}
+
+// 打印霍夫曼编码
+void printCodes(const Node* root, int arr[], int top, FILE *file) {
+    extern HuffmanCode*hhh;
+    if (top >= 100) {
+        exit(0);
+    }
+    if (root->leftChild) {
+        arr[top] = 0;
+        printCodes(root->leftChild, arr, top + 1, file);
+    }
+    if (root->rightChild) {
+        arr[top] = 1;
+        printCodes(root->rightChild, arr, top + 1, file);
+    }
+    if (isLeafNode(root)) {
+        fprintf(file, "%c: ", root->character);
+        for (int i = 0; i < top; ++i) {
+            fprintf(file, "%d", arr[i]);
+            if(root->character >=0) {
+                hhh[root->character].huffmanCode[i]=arr[i];
+                hhh[root->character].huffmanCode[100]=top;
+            }
+        }
+        fprintf(file, "//%d\n", root->character);
+    }
+}
+        int CHAR=0;
+HuffmanCode *hhh;
+// 主函数
+int main(void) {
+    FILE *fileInput = fopen("D:\\q.txt", "r+b");
+    if (fileInput == NULL) {exit(23);}
+    FILE *fileOutput = fopen("D:\\1111.txt", "w+b");
+    if (fileOutput == NULL) {exit(24);}
+    fseek(fileInput, 1l, SEEK_SET);
+
+    char inputChar;
+    if (fread(&inputChar, sizeof(char), 1, fileInput) == 0) {
+        if(inputChar == EOF) {
+            exit(25);
         }
     }
-
-
-   //rintf("sort_list end\n");
-}
-//
-void extract_node(list *list2) {
-//    putchar('%');
-    list *list1 = list2;
-    if (list1 == NULL) {
-        return;
+    ListNode *huffmanList = createListNode(createNode(inputChar, 1));
+    while (fread(&inputChar, sizeof(char), 1, fileInput) == 1) {
+        processInput(huffmanList, inputChar);
+        CHAR++;
     }
 
-    // sort_list(list1);
-    list *list0 = list1;
-    while (list0->next != NULL && list0->next->next != NULL)
-        list0 = list0->next;
-     if (list0->next != NULL)  {
-        node *new_node = newnode('\0', list0->data->fred + list0->next->data->fred);
-        new_node->left = list0->data;
-        new_node->right = list0->next->data;
-   //       putchar('&');
-        list0->next->data=NULL;
-        free(list0->next);
-        list0->next = NULL;
-        list0->data = new_node;
-
-         list* list3 = list1;
-         while (list3->next != list0) {
-             list3 = list3->next;
-         }
-
-         if (compire_fred(list0,list1)) {
-             swap_list(list0,list1);
-         } else if (compire_fred(list3,list0)) {
-             return;
-         }
-
-            while(list1!=list3) {
-                if (compire_fred(list1,list0) && compire_fred(list0,list1->next) ){
-                   break;
-                }
-                list1 = list1->next;
+    buildHuffmanTree(&huffmanList);
+    int codeArray[100], top = 0;
+    hhh=(HuffmanCode*)malloc(CHAR*sizeof(HuffmanCode));
+    for (int i = 0; i < CHAR; ++i) {
+        hhh[i].huffmanCode[100] = 0;
+    }
+    printCodes(huffmanList->nodeData, codeArray, top, fileOutput);
+    fseek(fileInput, 1l, SEEK_SET);
+    while (fread(&inputChar, sizeof(char), 1, fileInput) == 1) {
+        if (inputChar >=0) {
+            for(int i=0;i<hhh[inputChar].huffmanCode[100];++i) {
+                fprintf(fileOutput, "%d", hhh[inputChar].huffmanCode[i]);
             }
-
-         list0->next = list1->next  ;
-         list1->next = list0;
-         list3->next = NULL;
-
-}
-}
-
-void hullman(list *list0) {
-    sort_list(list0);
-    if (list0 == NULL) {return;}
-    while(  list0->next != NULL ) {
-        //  putchar('%');
-        extract_node(list0);
+        }
     }
-}
-
-//处理输入字符
-void see_input (list *list0,char into) {
-
-    while ( list0->next && list0->data->data !=into ) {
-        list0=list0->next;
-    }
-    if (list0->data->data ==into) {
-        list0->data->fred++;
-    }
-if (!list0->next) {
-   list0->next = create_list(newnode(into,1));
-    //putchar(into);
-}
-}
-
-void huffman_free_(node* temp) {
-    if (temp == NULL) {return;}
-    {
-        node* temp0 = temp->left;
-        node* temp1 = temp->right;
-        free(temp);
-        huffman_free_(temp0);
-        huffman_free_(temp1);
-    }
-
-}
-
-void huffman_free(list *list0) {
-    if (list0 == NULL) {return;}
-  {
-        node* temp = list0->data->right;
-        node* temp1 = list0->data->left;
-        free(list0->data);
-        free(list0);
-        huffman_free_(temp);
-        huffman_free_(temp1);
-    }
-}/*
-void huffman_display(node *data0) {
-    / int huffman[100];
-      if (data0 == NULL) {return;}
-      if(data0->right == NULL && data0->left == NULL) {
-          printf("0 %c" ,data0->data);
-      } else if (data0->right!=NULL) {
-
-      }
-}
-
-*/
-int isLeaf(const node* root) {
-    return !root->left && !root->right; // 如果没有左右子节点，则是叶子节点
-}
-
-void printCodes(const node* root, int arr[], int top) {
-    if (root->left) { // 如果存在左子节点，标记为0并递归
-        arr[top] = 0;
-        printCodes(root->left, arr, top + 1);
-    }
-    if (root->right) { // 如果存在右子节点，标记为1并递归
-        arr[top] = 1;
-        printCodes(root->right, arr, top + 1);
-    }
-    if (isLeaf(root)) { // 如果是叶子节点，打印字符及其编码
-        printf("%c: ", root->data);
-        for (int i = 0; i < top; ++i)
-            printf("%d", arr[i]);
-        printf("\n");
-    }
-}
-
-
-
-int main(void) {
-    char ch=getchar();
-    if(ch==EOF)
-        return 0;
-
-    list* er = create_list(newnode(ch,1));
-
-    while((ch = getchar())!='q') {
-        see_input(er,ch);
-    }
-      // huffman_display(er->data);
-        hullman(er);
-    int arr[100], top = 0; // 存储霍夫曼编码的数组
-
-    printCodes(er->data, arr, top); // 打印霍夫曼编码
-
-    hullman(er);
-    huffman_free(er);
+    fclose(fileInput);
+    fclose(fileOutput);
+    freeHuffmanList(huffmanList);
+    free(hhh);
+    return 0;
 }
