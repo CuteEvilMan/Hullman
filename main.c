@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-
+#define CHAR 256
 // 定义霍夫曼树的节点结构体
 typedef struct node {
     char character;       // 节点存储的字符
@@ -125,7 +125,7 @@ ListNode* findNode(ListNode *list, char character) {
 
 // 处理输入字符，更新链表中相应节点的频率或添加新节点
 void processInput(ListNode *list, char character) {
-    extern int CHAR;
+    extern int number;
     ListNode *foundNode = findNode(list, character);
     if (foundNode == NULL) {
         ListNode *endNode = list;
@@ -133,7 +133,8 @@ void processInput(ListNode *list, char character) {
             endNode = endNode->nextNode;
         }
         endNode->nextNode = createListNode(createNode(character, 1));
-        CHAR++;
+        number++;
+
     } else if (foundNode->nodeData->character == character) {
         foundNode->nodeData->frequency++;
     }
@@ -175,57 +176,123 @@ void printCodes(const Node* root, int arr[], int top, FILE *file) {
         printCodes(root->rightChild, arr, top + 1, file);
     }
     if (isLeafNode(root)) {
-        fprintf(file, "%c: ", root->character);
+       fprintf(file, "%d||", root->character);
+        fprintf(file, "%d||", root->frequency);
         for (int i = 0; i < top; ++i) {
             fprintf(file, "%d", arr[i]);
-            if(root->character >=0) {
-                hhh[root->character].huffmanCode[i]=arr[i];
-                hhh[root->character].huffmanCode[100]=top;
-            }
+                hhh[root->character+CHAR/2].huffmanCode[i]=arr[i];
+                hhh[root->character+CHAR/2].huffmanCode[100]=top;
         }
-        fprintf(file, "//%d\n", root->character);
+        fprintf(file, "\n");
     }
 }
-        int CHAR=0;
 HuffmanCode *hhh;
+int number=1;
 // 主函数
 int main(void) {
-    FILE *fileInput = fopen("D:\\q.txt", "r+b");
-    if (fileInput == NULL) {exit(23);}
-    FILE *fileOutput = fopen("D:\\1111.txt", "w+b");
-    if (fileOutput == NULL) {exit(24);}
-    fseek(fileInput, 1l, SEEK_SET);
+    int in=1;
+    scanf("%d", &in);
+    if(in==0) {
+        FILE *fileInput = fopen("D:\\1.txt", "r+b");
+        if (fileInput == NULL) {exit(23);}
+        FILE *fileOutput = fopen("D:\\2.txt", "w+b");
+        if (fileOutput == NULL) {exit(24);}
+        fseek(fileInput, 0l, SEEK_SET);
 
-    char inputChar;
-    if (fread(&inputChar, sizeof(char), 1, fileInput) == 0) {
-        if(inputChar == EOF) {
-            exit(25);
-        }
-    }
-    ListNode *huffmanList = createListNode(createNode(inputChar, 1));
-    while (fread(&inputChar, sizeof(char), 1, fileInput) == 1) {
-        processInput(huffmanList, inputChar);
-        CHAR++;
-    }
-
-    buildHuffmanTree(&huffmanList);
-    int codeArray[100], top = 0;
-    hhh=(HuffmanCode*)malloc(CHAR*sizeof(HuffmanCode));
-    for (int i = 0; i < CHAR; ++i) {
-        hhh[i].huffmanCode[100] = 0;
-    }
-    printCodes(huffmanList->nodeData, codeArray, top, fileOutput);
-    fseek(fileInput, 1l, SEEK_SET);
-    while (fread(&inputChar, sizeof(char), 1, fileInput) == 1) {
-        if (inputChar >=0) {
-            for(int i=0;i<hhh[inputChar].huffmanCode[100];++i) {
-                fprintf(fileOutput, "%d", hhh[inputChar].huffmanCode[i]);
+        char inputChar;
+        if (fread(&inputChar, sizeof(char), 1, fileInput) == 0) {
+            if(inputChar == EOF) {
+                exit(25);
             }
         }
+        ListNode *huffmanList = createListNode(createNode(inputChar, 1));
+        while (fread(&inputChar, sizeof(char), 1, fileInput) == 1) {
+            processInput(huffmanList, inputChar);
+
+        }
+
+        buildHuffmanTree(&huffmanList);
+        int codeArray[100], top = 0;
+        hhh=(HuffmanCode*)malloc(CHAR*sizeof(HuffmanCode));
+        for (int i = 0; i < CHAR; ++i) {
+            hhh[i].huffmanCode[100] = 0;
+        }
+        fprintf(fileOutput, "%d\n", number);
+        printCodes(huffmanList->nodeData, codeArray, top, fileOutput);
+        fseek(fileInput, 0l, SEEK_SET);
+        while (fread(&inputChar, sizeof(char), 1, fileInput) == 1) {
+            for(int i=0;i<hhh[inputChar+CHAR/2].huffmanCode[100];++i) {
+                fprintf(fileOutput, "%d", hhh[inputChar+CHAR/2].huffmanCode[i]);
+
+            }
+        }
+        fclose(fileInput);
+        fclose(fileOutput);
+        freeHuffmanList(huffmanList);
+        free(hhh);
+        return 0;
     }
-    fclose(fileInput);
-    fclose(fileOutput);
-    freeHuffmanList(huffmanList);
-    free(hhh);
-    return 0;
+        else {
+            FILE *fp0 = fopen("D:\\2.txt", "r");
+            if (fp0 == NULL) {
+                perror("Error opening file for reading");
+                exit(23);
+            }
+            FILE *fp1 = fopen("D:\\1.txt", "w");
+            if (fp1 == NULL) {
+                fclose(fp0);
+                perror("Error opening file for writing");
+                exit(24);
+            }
+
+            int s;
+            fscanf(fp0, "%d", &s); // 读取字符总数
+
+            ListNode *huffmanList = NULL;
+            for (int i = 0; i < s; ++i) {
+                char c;
+                unsigned int d;
+                // 假设文件格式是 "字符||频率||字符"，例如 "65||97||A\n"
+                fscanf(fp0, "%d||%d||%c\n", &d, &d, &c);
+                Node *newNode = createNode(c, d);
+                if (huffmanList == NULL) {
+                    huffmanList = createListNode(newNode);
+                } else {
+                    ListNode *current = huffmanList;
+                    while (current->nextNode != NULL) {
+                        current = current->nextNode;
+                    }
+                    current->nextNode = createListNode(newNode);
+                }
+            }
+
+            buildHuffmanTree(&huffmanList);
+
+            Node *root = huffmanList->nodeData; // 假设 huffmanList->nodeData 是根节点
+            char bit;
+            Node *currentNode = root;
+            while ((bit = fgetc(fp0)) != EOF) {
+                if (bit == '0') {
+                    currentNode = currentNode->leftChild;
+                } else if (bit == '1') {
+                    currentNode = currentNode->rightChild;
+                } else {
+                    fprintf(stderr, "Invalid bit encountered: %c\n", bit);
+                    fclose(fp0);
+                    fclose(fp1);
+                    freeHuffmanList(huffmanList);
+                    exit(1);
+                }
+
+                if (isLeafNode(currentNode)) {
+                    fprintf(fp1, "%c", currentNode->character);
+                    currentNode = root; // 重置为根节点以开始新的解码
+                }
+            }
+
+            fclose(fp0);
+            fclose(fp1);
+            freeHuffmanList(huffmanList);
+            return 0;
+        }
 }
