@@ -1,9 +1,21 @@
+#ifndef HUFFMAN_LINUX
+#define HUFFMA_LINUX
 
 #include <stdio.h>
 #include <stdlib.h>
 #define CHAR 256
 #define end_mark "\n|\n|\n"
 unsigned long Huffman_max = 1024L*128L;
+
+// 比较两个节点的频率
+#define compareFrequencies(nodeA,nodeB) \
+((nodeA->nodeData->frequency > nodeB->nodeData->frequency)||\
+(nodeA->nodeData->frequency == nodeB->nodeData->frequency &&\
+nodeA->nodeData->character > nodeB->nodeData->character))
+
+// 判断节点是否为叶子节点
+#define isLeafNode(node) ((node->leftChild == NULL) && (node->rightChild == NULL))
+
 // 定义霍夫曼树的节点结构体
 typedef struct node {
     char character;       // 节点存储的字符
@@ -23,14 +35,7 @@ typedef struct {
     char character;                 // 编码的字符
     int huffmanCode[101];           // 霍夫曼编码数组
 } HuffmanCode;
-// 比较两个节点的频率
-#define compareFrequencies(nodeA,nodeB) \
-((nodeA->nodeData->frequency > nodeB->nodeData->frequency)||\
-(nodeA->nodeData->frequency == nodeB->nodeData->frequency &&\
-nodeA->nodeData->character > nodeB->nodeData->character))
 
-// 判断节点是否为叶子节点
-#define isLeafNode(node) ((node->leftChild == NULL) && (node->rightChild == NULL))
 // 函数声明
 /*操作链表的函数*/
 inline ListNode* createListNode/*创建链表节点*/(Node* nodeData);
@@ -302,8 +307,11 @@ Node*CHTree_from_txt(FILE* In1,ListNode**huffmanList) {
          process++;
          printf("已压缩约%G%%\n", processonce*(double)process);
     }
-   fprintf(fp2, "" end_mark "%d  ", count)==0;
+    
+   fprintf(fp2, "" end_mark "%d  ", count);
+
     for (int i=0;i<count ;i++) {
+    
         fprintf(fp2, "%d ",cunchu & 1<<i ? 1 : 0);
     }/*将最后剩余的编码输出到文件中，方便解码*/
     fclose(fp0);
@@ -399,84 +407,4 @@ Node*CHTree_from_txt(FILE* In1,ListNode**huffmanList) {
     puts("解码成功\n");
     return Out;
 }
-
-#include <string.h>
-#define WORK_FILE "/huffman_workfile"
-int main() {
-    char *homeo=getenv("HOME");
-    char*workpath=malloc(sizeof(char)*(strlen(homeo)+strlen(WORK_FILE)+1));
-    
-     strcat(workpath,homeo);
-     strcat(workpath,WORK_FILE);
-     fputs(workpath,stdout);
-     putchar('\n');
-    FILE*home=fopen(workpath,"r+b");
-    
-    if(home == NULL) {
-     //   fclose(home);
-        home=fopen(workpath, "w+b");
-        if(home!=NULL)
-        fclose(home);
-        return 1;
-    }
-
-    int xuanz;
-    char TXT[3][250];
-    unsigned long huffman_max;
-    fseek(home, 0, SEEK_SET);
-   if ( fscanf(home, "huffman_MAX:%20lu\n", &huffman_max) == 0 ) {
-       fseek(home, 0, SEEK_SET);
-       huffman_max=0L;
-   }
-
-        if (huffman_max > Huffman_max ) {
-            Huffman_max = huffman_max;
-            printf("Huffman_max已使用%lu\n",Huffman_max);
-        }
-
-  while (  fscanf(home,"%d",&xuanz ) == 1)
-    {
-      while (getc(home) != '\n') continue;
-        fgets(TXT[0],250,home);
-        fgets(TXT[1],250,home);
-        fgets(TXT[2],250,home);
-        for(int i=0;i<3;i++) {
-            int j=0;
-            while (TXT[i][j] != '\n' && TXT[i][j] != '\0' && j<250 ) {
-                j++;
-            }
-            TXT[i][j]='\0';
-        }
-        puts("处理文件名为:\n");
-        puts(TXT[0]);
-        puts(TXT[1]);
-        puts(TXT[2]);
-        if (xuanz>0) {
-            puts("开始编码");
-          if(  huffman_encode_r(TXT[0],TXT[1],TXT[2] ) == NULL ) {
-              perror("编码过程错误");
-              puts("输入任何字符退出");
-              free(workpath);
-              getchar();
-              fclose(home);
-              exit(6);
-          }
-        }
-        else if (xuanz<0) {
-            puts("开始解码");
-           if ( huffman_decode_r(TXT[0],TXT[1],TXT[2] ) == NULL ) {
-               perror("解码过程错误");
-               puts("输入任何字符退出");
-               free(workpath);
-               getchar();
-               fclose(home);
-               exit(6);
-           }
-        }
-    }
-
-    puts("输入任何字符退出");
-    getchar();
-    fclose(home);
-    exit(0);
-}
+#endif
