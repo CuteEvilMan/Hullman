@@ -399,6 +399,7 @@ Node*CHTree_from_txt(FILE* In1,ListNode**huffmanList) {
     puts("解码成功\n");
     return Out;
 }
+
 #include <string.h>
 #define WORK_FILE "/huffman_workfile"
 int main() {
@@ -407,8 +408,10 @@ int main() {
     
      strcat(workpath,homeo);
      strcat(workpath,WORK_FILE);
-     puts(workpath);
+     fputs(workpath,stdout);
+     putchar('\n');
     FILE*home=fopen(workpath,"r+b");
+    
     if(home == NULL) {
      //   fclose(home);
         home=fopen(workpath, "w+b");
